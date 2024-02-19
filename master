@@ -1,0 +1,44 @@
+#include <Stepper.h>
+
+const int joystickPin = A0;
+const int motorSteps = 200;  // number of steps per revolution for your stepper motor
+const int motorPin1 = 8;     // choose the appropriate pin for your motor driver
+const int motorPin2 = 9;     // choose the appropriate pin for your motor driver
+const int motorPin3 = 10;    // choose the appropriate pin for your motor driver
+const int motorPin4 = 11;    // choose the appropriate pin for your motor driver
+
+const int range1Threshold = 512;  // joystick threshold for Range 1 and Range 2
+const int delayTime = 10;          // delay time for motor speed adjustment
+
+Stepper myStepper(motorSteps, motorPin1, motorPin2, motorPin3, motorPin4);
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(joystickPin, INPUT);
+}
+
+void loop() {
+  int joystickValue = analogRead(joystickPin);
+
+  // Map joystick value to motor speed (adjust as needed)
+  int motorSpeed = map(joystickValue, 0, 1023, 0, 100);
+
+  // Determine speed range based on joystick position
+  if (joystickValue < range1Threshold) {
+    motorSpeed = map(motorSpeed, 0, 100, 0, 50);  // Adjust speed for Range 1
+  } else {
+    motorSpeed = map(motorSpeed, 0, 100, 50, 100);  // Adjust speed for Range 2
+  }
+
+  // Move the stepper motor
+  myStepper.setSpeed(motorSpeed);
+  myStepper.step(1);  // Move one step (adjust steps as needed)
+
+  // Display information on Serial Monitor
+  Serial.print("Joystick Value: ");
+  Serial.print(joystickValue);
+  Serial.print(", Motor Speed: ");
+  Serial.println(motorSpeed);
+
+  delay(delayTime);
+}
