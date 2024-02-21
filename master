@@ -1,13 +1,29 @@
 #include <Stepper.h>
+#include <PID_v1_bc.h>
 
-#define STEPS 32
+// Stepper motor pins
 #define IN1 11
 #define IN2 10
 #define IN3 9
 #define IN4 8
+#define STEPS 32
 
+// Joystick pin
+#define JOYSTICK A0
+
+// Constants
+const double SETPOINT = 512.0;   // Desired joystick position
+const double KP = 0.1;           // Proportional gain
+const double KI = 0.01;          // Integral gain
+const int MIN_SPEED = 5;         // Minimum motor speed
+const int MAX_SPEED = 500;       // Maximum motor speed
+
+// Variables
+double input, output;
+PID myPID(&input, &output, &SETPOINT, KP, KI, 0, DIRECT); // PID controller
+
+// Create an instance of the Stepper class
 Stepper stepper(STEPS, IN4, IN2, IN3, IN1);
-#define joystick A0
 
 void setup() {
   // Set pin modes for motor control pins
@@ -15,26 +31,28 @@ void setup() {
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
+
+  // Set up PID
+  myPID.SetMode(AUTOMATIC);
+  myPID.SetOutputLimits(-MAX_SPEED, MAX_SPEED);  // Adjust the output limits as needed
 }
 
 void loop() {
-  int val = analogRead(joystick);
+  // Read joystick input
+  int val = analogRead(JOYSTICK);
+  input = val;
 
-  // If the joystick is centered, stop the motor
-  if (val >= 500 && val <= 512) {
-    stepper.setSpeed(0);
-    stepper.step(0);
-  }
-  // If the joystick is moved to the right, move the motor forward
-  else if (val > 512 && val <= 1023) {
-    int speed_ = map(val, 512, 1023, 5, 500);
-    stepper.setSpeed(speed_);
-    stepper.step(1);
-  }
-  // If the joystick is moved to the left, move the motor backward
-  else if (val >= 0 && val < 500) {
-    int speed_ = map(val, 0, 500, 1000, 5);
-    stepper.setSpeed(speed_);
-    stepper.step(-1);
-  }
+  // Compute PID output
+  myPID.Compute();
+
+  // Compute motor speed and direction
+  int speed = abs(output) < MIN_SPEED ? 0 : abs(output);
+  int direction = output < 0 ? -1 : 1;
+
+  // Set motor speed and direction
+  stepper.setSpeed(speed);
+  stepper.step(direction);
+
+  // Delay to control loop rate
+  delay(50);
 }
